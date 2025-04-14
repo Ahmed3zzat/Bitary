@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import * as Yup from "yup";
-import loginImage from "@/assets/images/SplashScreen.jpg";
+import loginImage from "@/assets/images/doctorimg.jpg";
 import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";

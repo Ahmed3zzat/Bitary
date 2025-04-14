@@ -3,7 +3,7 @@ import { useFormik } from "formik";
 import Link from "next/link";
 import Image from "next/image";
 import * as Yup from "yup";
-import loginImage from "@/assets/images/SplashScreen.jpg";
+import loginImage from "@/assets/images/doctorimg.jpg";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
