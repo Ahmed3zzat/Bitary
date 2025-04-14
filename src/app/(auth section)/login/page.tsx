@@ -37,7 +37,9 @@ export default function Login() {
       try {
         await dispatch(setLogin(values)).unwrap();
         router.push("/home");
-      } catch (error) {}
+      } catch (error) {
+        localStorage.setItem("error", JSON.stringify(error))
+      }
       // router.push("/home");
     },
   });

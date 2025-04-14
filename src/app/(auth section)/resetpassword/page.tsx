@@ -48,6 +48,7 @@ export default function ResetPassword() {
         // router.push("/login");
       } catch (error) {
         console.error(error);
+        localStorage.setItem("error", JSON.stringify(error))
       } finally {
         setIsSubmitting(false);
       }

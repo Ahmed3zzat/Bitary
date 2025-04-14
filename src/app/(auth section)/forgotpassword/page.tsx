@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/hooks/store.hook";
 import { setSendPassword } from "@/store/Features/user.slice";
 
+
 export default function ForgetPassword() {
   const dispatch = useAppDispatch()
   const router = useRouter();
@@ -24,7 +25,8 @@ export default function ForgetPassword() {
         await dispatch(setSendPassword(values)).unwrap()
         router.push("/resetpassword");
       } catch (error) {
-        
+          localStorage.setItem("error", JSON.stringify(error))
+          
       }
     },
   });
