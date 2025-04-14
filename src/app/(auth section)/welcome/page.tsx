@@ -3,7 +3,7 @@ import Image from "next/image";
 import BitaryText from "@/assets/BitaryText.svg";
 export default function Home() {
   return (
-    <div className="relative h-[calc(100vh-5rem)] bg-[url('@/assets/images/SplashScreen.jpg')] bg-cover bg-no-repeat bg-center flex flex-col items-center justify-center">
+    <div className="relative h-[calc(100vh-5rem)] bg-cover bg-no-repeat bg-center flex flex-col items-center justify-center">
       <div className="absolute inset-0 bg-black/30"></div>
 
       <div className="getStarted my-auto mb-4 rounded-2xl text-center">
