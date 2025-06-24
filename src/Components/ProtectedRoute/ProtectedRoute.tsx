@@ -1,18 +1,22 @@
 "use client"; 
 import { useAppSelector } from "@/hooks/store.hook";
 import { useRouter } from "next/navigation";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
   const { token } = useAppSelector((store) => store.userSlice);
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!token) {
-      router.push("/welcome"); // إعادة التوجيه إلى صفحة تسجيل الدخول
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !token) {
+      router.push("/welcome");
     }
-  }, [token, router]);
+  }, [token, router, mounted]);
 
   return children;
-
 }

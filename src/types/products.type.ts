@@ -20,7 +20,7 @@ export interface Product {
   pictureUrl: string;
   quantity: number;
   price: number; // Note: Consider using 'number' for currency (or convert to decimal)
-  brandName: string;
-  categoryName: string;
+  brandName?: string;
+  categoryName?: string;
   
 }

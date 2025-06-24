@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import * as Yup from "yup";
-import loginImage from "@/assets/images/doctorimg.jpg";
+import loginImage from "@/assets/images/SplashScreen.jpg";
 import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
@@ -48,7 +48,6 @@ export default function ResetPassword() {
         // router.push("/login");
       } catch (error) {
         console.error(error);
-        localStorage.setItem("error", JSON.stringify(error))
       } finally {
         setIsSubmitting(false);
       }
@@ -186,7 +185,7 @@ export default function ResetPassword() {
                   className={`flex items-center ${
                     formik.values.newPassword.length >= 8
                       ? "text-green-600"
-                      : ""
+                      : "text-red-600"
                   }`}
                 >
                   {formik.values.newPassword.length >= 8 ? "✓" : "•"} At least 8
@@ -196,7 +195,7 @@ export default function ResetPassword() {
                   className={`flex items-center ${
                     /[A-Z]/.test(formik.values.newPassword)
                       ? "text-green-600"
-                      : ""
+                      : "text-red-600"
                   }`}
                 >
                   {/[A-Z]/.test(formik.values.newPassword) ? "✓" : "•"} One
@@ -206,7 +205,7 @@ export default function ResetPassword() {
                   className={`flex items-center ${
                     /[a-z]/.test(formik.values.newPassword)
                       ? "text-green-600"
-                      : ""
+                      : "text-red-600"
                   }`}
                 >
                   {/[a-z]/.test(formik.values.newPassword) ? "✓" : "•"} One
@@ -214,7 +213,7 @@ export default function ResetPassword() {
                 </li>
                 <li
                   className={`flex items-center ${
-                    /\d/.test(formik.values.newPassword) ? "text-green-600" : ""
+                    /\d/.test(formik.values.newPassword) ? "text-green-600" : "text-red-600"
                   }`}
                 >
                   {/\d/.test(formik.values.newPassword) ? "✓" : "•"} One number
@@ -223,7 +222,7 @@ export default function ResetPassword() {
                   className={`flex items-center ${
                     /[@$!%*?&]/.test(formik.values.newPassword)
                       ? "text-green-600"
-                      : ""
+                      : "text-red-600"
                   }`}
                 >
                   {/[@$!%*?&]/.test(formik.values.newPassword) ? "✓" : "•"} One

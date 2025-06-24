@@ -1,156 +1,193 @@
 "use client";
 
-import { useState } from "react";
-import { FaSearch, FaChevronDown, FaSearchLocation } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import { FaSearch, FaChevronDown, FaMapMarkerAlt } from "react-icons/fa";
 
-// Define the props interface for the component
-interface ClinicsFilterProps {
-  setAvailability: (value: string) => void; // Function to set availability filter
-  setFilter: (value: string) => void;       // Function to set other filters
-  setSortBy: (value: string) => void;       // Function to set sorting criteria
+interface FilterOption {
+  value: string;
+  label: string;
 }
 
-// Main component
+interface ClinicsFilterProps {
+  onSearch: (query: string) => void;
+  onLocationChange: (location: string) => void;
+  onFilterChange: (filter: string) => void;
+  onSortChange: (sort: string) => void;
+}
+
 export default function ClinicsFilter({
-  setAvailability,
-  setFilter,
-  setSortBy,
+  onSearch,
+  onLocationChange,
+  onFilterChange,
+  onSortChange,
 }: ClinicsFilterProps) {
-  // State to track the currently active dropdown menu
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [locationQuery, setLocationQuery] = useState("");
 
-  // Function to toggle the visibility of a dropdown menu
-  const toggleMenu = (menu: string) => {
-    setActiveMenu(activeMenu === menu ? null : menu);
+  // const availabilityOptions: FilterOption[] = [
+  //   { value: "any", label: "Any Availability" },
+  //   { value: "today", label: "Available Today" },
+  //   { value: "tomorrow", label: "Available Tomorrow" },
+  // ];
+
+  const filterOptions: FilterOption[] = [
+    { value: "all", label: "All Clinics" },
+    { value: "premium", label: "Premium Only" },
+    // { value: "new", label: "New Clinics" },
+    // { value: "verified", label: "Verified Only" },
+  ];
+
+  const sortOptions: FilterOption[] = [
+    { value: "relevance", label: "Relevance" },
+    { value: "rating", label: "Highest Rating" },
+    { value: "name", label: "Name (A-Z)" },
+    { value: "name-desc", label: "Name (Z-A)" },
+  ];
+
+  // Apply search with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onSearch(searchQuery);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchQuery, onSearch]);
+  
+  // Apply location search with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onLocationChange(locationQuery);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [locationQuery, onLocationChange]);
+
+  const handleSearch = () => {
+    onSearch(searchQuery);
   };
 
-  // Function to handle selection from dropdown menus
-  const handleSelection = (
-    type: "availability" | "filter" | "sortBy",
-    value: string
-  ) => {
-    if (type === "availability") setAvailability(value); // Update availability filter
-    if (type === "filter") setFilter(value);             // Update other filters
-    if (type === "sortBy") setSortBy(value);             // Update sorting criteria
-    setActiveMenu(null); // Close the dropdown menu after selection
+  const handleLocationChange = () => {
+    onLocationChange(locationQuery);
   };
 
-  // Function to render a dropdown menu with options
-  const renderDropdown = (type: "availability" | "filter" | "sortBy", options: string[]) => {
-    if (activeMenu !== type) return null; // Render dropdown only if it's active
+  const renderDropdown = (options: FilterOption[], type: string) => {
+    if (activeMenu !== type) return null;
 
     return (
-      <div className="absolute mt-2 w-48 bg-white rounded-md shadow-lg z-10 py-1">
+      <div className="absolute mt-2 w-56 bg-white rounded-md shadow-lg z-20 py-1 border border-gray-200">
         {options.map((option) => (
-          <div
-            key={option}
-            onClick={() => handleSelection(type, option)} // Handle option selection
-            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+          <button
+            key={option.value}
+            onClick={() => {
+              if (type === "filter") {
+                onFilterChange(option.value);
+              } else if (type === "sort") {
+                onSortChange(option.value);
+              }
+              setActiveMenu(null);
+            }}
+            className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700"
           >
-            {option}
-          </div>
+            {option.label}
+          </button>
         ))}
       </div>
     );
   };
 
   return (
-    <div className="mt-6 px-2 lg:px-6 py-5 rounded-lg mb-5 bg-[#E9E5E5] shadow-sm">
-      {/* Search Section */}
-      <div className="flex flex-col md:flex-row gap-2 mb-6">
-        {/* Location Input */}
-        <div className="flex-1">
-          <div className="bg-white rounded-lg flex items-center shadow-sm">
-          <FaSearchLocation className="text-gray-500 text-3xl ms-3" />
-            <input
-              type="text"
-              placeholder="Set your location"
-              className="p-4 w-full rounded-lg text-gray-600 focus:outline-none"
-            />
+    <div className="bg-white rounded-xl shadow-2xl p-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* Location Search */}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FaMapMarkerAlt className="text-gray-600" />
           </div>
+          <input
+            type="text"
+            placeholder="Search by location..."
+            className="pl-10 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            value={locationQuery}
+            onChange={(e) => setLocationQuery(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleLocationChange()}
+          />
         </div>
 
-        {/* Search Input */}
-        <div className="flex-1">
-          <div className="bg-white rounded-lg flex items-center shadow-sm">
-            <FaSearch className="text-gray-500 text-3xl ms-3" />
-            <input
-              type="text"
-              placeholder="Ex. Doctor, Hospital"
-              className="p-4 w-full rounded-lg text-gray-600 focus:outline-none"
-            />
+        {/* Clinic Search */}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <FaSearch className="text-gray-600" />
           </div>
+          <input
+            type="text"
+            placeholder="Search clinics..."
+            className="pl-10 w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyPress={(e) => e.key === "Enter" && handleSearch()}
+          />
         </div>
 
         {/* Search Button */}
-        <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-lg flex items-center gap-2 mt-2 md:mt-0 cursor-pointer">
-          <FaSearch className="text-white" /> Search
+        <button
+          onClick={handleSearch}
+          className="bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg px-6 py-3 transition-colors flex items-center justify-center"
+        >
+          <FaSearch className="mr-2" />
+          Search Clinics
         </button>
       </div>
 
-      {/* Filter Controls */}
-      <div className="flex gap-8 text-sm text-gray-600">
+      <div className="flex flex-wrap gap-4">
         {/* Availability Filter */}
-        <div className="relative">
+        {/* <div className="relative">
           <button
-            onClick={() => toggleMenu("availability")} // Toggle availability dropdown
-            className="flex items-center cursor-pointer"
+            onClick={() => setActiveMenu(activeMenu === "availability" ? null : "availability")}
+            className="flex items-center bg-gray-50 hover:bg-gray-100 px-4 py-2 rounded-lg text-gray-700 transition-colors"
           >
             Availability
             <FaChevronDown
-              className={`ml-1 transition-transform ${
+              className={`ml-2 transition-transform ${
                 activeMenu === "availability" ? "rotate-180" : ""
               }`}
             />
           </button>
-          {renderDropdown("availability", [
-            "Any",
-            "Available Today",
-            "Available Tomorrow",
-            "Available This Week",
-          ])}
-        </div>
+          {renderDropdown(availabilityOptions, "availability")}
+        </div> */}
 
-        {/* Other Filters */}
+        {/* Clinic Filters */}
         <div className="relative">
           <button
-            onClick={() => toggleMenu("filter")} // Toggle filter dropdown
-            className="flex items-center cursor-pointer"
+            onClick={() =>
+              setActiveMenu(activeMenu === "filter" ? null : "filter")
+            }
+            className="flex items-center bg-gray-50 hover:bg-gray-100 px-4 py-2 rounded-lg text-gray-700 transition-colors"
           >
-            Filter
+            Filters
             <FaChevronDown
-              className={`ml-1 transition-transform ${
+              className={`ml-2 transition-transform ${
                 activeMenu === "filter" ? "rotate-180" : ""
               }`}
             />
           </button>
-          {renderDropdown("filter", [
-            "All",
-            "Free Consultation",
-            "Online Payment",
-            "Top Rated",
-          ])}
+          {renderDropdown(filterOptions, "filter")}
         </div>
 
-        {/* Sort By */}
+        {/* Sort Options */}
         <div className="relative">
           <button
-            onClick={() => toggleMenu("sortBy")} // Toggle sort-by dropdown
-            className="flex items-center cursor-pointer"
+            onClick={() => setActiveMenu(activeMenu === "sort" ? null : "sort")}
+            className="flex items-center bg-gray-50 hover:bg-gray-100 px-4 py-2 rounded-lg text-gray-700 transition-colors"
           >
             Sort By
             <FaChevronDown
-              className={`ml-1 transition-transform ${
-                activeMenu === "sortBy" ? "rotate-180" : ""
+              className={`ml-2 transition-transform ${
+                activeMenu === "sort" ? "rotate-180" : ""
               }`}
             />
           </button>
-          {renderDropdown("sortBy", [
-            "Relevance",
-            "Rating",
-            "Price Low to High",
-            "Price High to Low",
-          ])}
+          {renderDropdown(sortOptions, "sort")}
         </div>
       </div>
     </div>

@@ -1,241 +1,365 @@
 "use client";
-import { useRouter } from "next/navigation";
+
+import { JSX, useEffect } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import toast from "react-hot-toast";
-import {
-  FiEdit2,
-  FiCheck,
-  FiUser,
-  FiMail,
-  FiPhone,
-  FiMapPin,
-  FiLock,
-} from "react-icons/fi";
+import { FiCheck, FiMapPin, FiUser } from "react-icons/fi";
+import { useAppSelector, useAppDispatch } from "@/hooks/store.hook";
+import { fetchUserData } from "@/store/Features/profile.slice";
+import { IoIosCall } from "react-icons/io";
+import axios from "axios";
+import { motion } from "framer-motion";
 
-// Define all types first
-type ProfileData = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber: string;
-  address: string;
-  password?: string;
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
 };
 
-type EditableFields = "firstName" | "lastName" | "address";
-type ReadonlyFields = "email" | "phoneNumber" | "password";
-type AllFields = EditableFields | ReadonlyFields;
-
-type ProfileFormValues = Pick<ProfileData, EditableFields>;
-
-const profileData: ProfileData = {
-  firstName: "John",
-  lastName: "Doe",
-  email: "example@gmail.com",
-  phoneNumber: "0123456789",
-  address: "1234 Main St, New York, NY 10030",
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 12,
+    },
+  },
 };
+
+const nameFields = [
+  {
+    name: "firstName",
+    label: "First Name",
+    icon: <FiUser className="text-green-600" />,
+  },
+  {
+    name: "lastName",
+    label: "Last Name",
+    icon: <FiUser className="text-green-600" />,
+  },
+  {
+    name: "phone",
+    label: "Phone Number",
+    icon: <IoIosCall className="text-green-600" />,
+  },
+];
+
+const addressFields = [
+  {
+    name: "name",
+    label: "Address Name",
+    icon: <FiMapPin className="text-green-600" />,
+  },
+  {
+    name: "street",
+    label: "Street",
+    icon: <FiMapPin className="text-green-600" />,
+  },
+  {
+    name: "city",
+    label: "City",
+    icon: <FiMapPin className="text-green-600" />,
+  },
+  {
+    name: "country",
+    label: "Country",
+    icon: <FiMapPin className="text-green-600" />,
+  },
+];
+
+type FieldName =
+  | (typeof nameFields)[number]["name"]
+  | (typeof addressFields)[number]["name"];
 
 export default function Profile() {
-  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { user } = useAppSelector((state) => state.profileSlice);
 
-  const validationSchema = Yup.object().shape({
-    firstName: Yup.string().required("First name is required"),
-    lastName: Yup.string().required("Last name is required"),
-    address: Yup.string().required("Address is required"),
-  });
+  useEffect(() => {
+    dispatch(fetchUserData());
+  }, [dispatch]);
 
-  const formik = useFormik<ProfileFormValues>({
+  const isLoading = !user;
+
+  const formik = useFormik<Record<FieldName | "gender", string>>({
+    enableReinitialize: true,
     initialValues: {
-      firstName: profileData.firstName,
-      lastName: profileData.lastName,
-      address: profileData.address,
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      phone: user?.phoneNumber || "",
+      name: user?.address?.name || "",
+      street: user?.address?.street || "",
+      city: user?.address?.city || "",
+      country: user?.address?.country || "",
+      gender: user?.gender?.toString() || "1",
     },
-    validationSchema,
-    onSubmit: (values) => {
-      console.log(values);
-      toast.success("Profile updated successfully!", {
-        position: "top-center",
-        style: {
-          background: "#4BB543",
-          color: "#fff",
-          fontWeight: 500,
-          borderRadius: "12px",
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-        },
-        iconTheme: {
-          primary: "#fff",
-          secondary: "#4BB543",
-        },
-      });
+    validationSchema: Yup.object({
+      firstName: Yup.string().required("Required"),
+      lastName: Yup.string().required("Required"),
+      phone: Yup.string()
+        .required("Required")
+        .matches(/^[0-9+()\s-]+$/, "Invalid phone number"),
+      name: Yup.string().required("Required"),
+      street: Yup.string().required("Required"),
+      city: Yup.string().required("Required"),
+      country: Yup.string().required("Required"),
+      gender: Yup.string()
+        .oneOf(["1", "2"], "Invalid gender")
+        .required("Required"),
+    }),
+
+    onSubmit: async (values) => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error("Authorization token not found.");
+        }
+        const apiUrl = `http://bitary.runasp.net/api/Authentication/UpdateUserInformation`;
+        const requestBody = {
+          firstName: values.firstName,
+          lastName: values.lastName,
+          gender: parseInt(values.gender, 10),
+          address: {
+            name: values.name,
+            street: values.street,
+            city: values.city,
+            country: values.country,
+          },
+          phoneNumber: values.phone,
+        };
+        await axios.post(apiUrl, requestBody, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        toast.success("Profile updated successfully!");
+        dispatch(fetchUserData());
+      } catch (error) {
+        console.error("Update failed:", error);
+        toast.error("Failed to update profile. Please try again.");
+      }
     },
   });
 
-  const getFieldIcon = (field: AllFields) => {
-    switch (field) {
-      case "firstName":
-      case "lastName":
-        return <FiUser className="text-gray-500" />;
-      case "email":
-        return <FiMail className="text-gray-500" />;
-      case "phoneNumber":
-        return <FiPhone className="text-gray-500" />;
-      case "address":
-        return <FiMapPin className="text-gray-500" />;
-      case "password":
-        return <FiLock className="text-gray-500" />;
-      default:
-        return <FiUser className="text-gray-500" />;
-    }
-  };
-
-  const getFieldValue = (field: ReadonlyFields) => {
-    return profileData[field] || "";
-  };
-
-  const renderEditableField = (field: EditableFields) => (
-    <div key={field} className="relative">
+  const renderGenderSelect = () => (
+    <motion.div variants={itemVariants}>
       <label
-        htmlFor={field}
-        className="block text-sm font-medium text-gray-700 mb-1 capitalize"
+        htmlFor="gender"
+        className="block text-sm font-medium text-gray-800 mb-1"
       >
-        {field.replace(/([A-Z])/g, " $1")}
+        Gender
       </label>
       <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          {getFieldIcon(field)}
+        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-600">
+          <FiUser />
         </div>
-        <input
-          type="text"
-          id={field}
-          name={field}
-          className={`pl-10 bg-gray-50 border ${
-            formik.touched[field] && formik.errors[field]
-              ? "border-red-300"
-              : "border-gray-300"
-          } text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 transition duration-200`}
-          value={formik.values[field]}
+        <select
+          id="gender"
+          name="gender"
+          value={formik.values.gender}
           onChange={formik.handleChange}
           onBlur={formik.handleBlur}
-        />
+          className={`pl-10 bg-white border ${
+            formik.touched["gender"] && formik.errors["gender"]
+              ? "border-red-500"
+              : "border-gray-300"
+          } text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 w-full p-2.5 transition-all duration-200 ease-in-out hover:border-green-400`}
+        >
+          <option value="1">Male</option>
+          <option value="2">Female</option>
+        </select>
+        {formik.touched.gender && formik.errors.gender && (
+          <p className="text-xs text-red-600 mt-1">{formik.errors.gender}</p>
+        )}
       </div>
-      {formik.touched[field] && formik.errors[field] && (
-        <p className="mt-1 text-xs text-red-600 animate-fadeIn">
-          {formik.errors[field]}
-        </p>
-      )}
-    </div>
+    </motion.div>
   );
 
-  const renderReadonlyField = (field: ReadonlyFields) => (
-    <div key={field} className="relative w-full">
+  const renderInput = (name: FieldName, label: string, icon: JSX.Element) => (
+    <motion.div key={name} variants={itemVariants}>
       <label
-        htmlFor={field}
-        className="block text-sm font-medium text-gray-700 mb-1 capitalize"
+        htmlFor={name}
+        className="block text-sm font-medium text-gray-800 mb-1"
       >
-        {field === "phoneNumber"
-          ? "Phone Number"
-          : field === "email"
-          ? "Email Address"
-          : "Password"}
+        {label}
       </label>
       <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          {getFieldIcon(field)}
+        <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+          {icon}
         </div>
         <input
-          type={field === "email" ? "email" : field === "password" ? "password" : "tel"}
-          id={field}
-          autoComplete={field === "email" ? "username" : undefined}
-          className="pl-10 bg-gray-100 border border-gray-300 text-gray-500 text-sm rounded-lg block w-full p-2.5 cursor-not-allowed"
-          value={getFieldValue(field)}
-          placeholder={field === "password" ? "••••••••" : ""}
-          readOnly
-          disabled
+          id={name}
+          name={name}
+          type="text"
+          value={formik.values[name]}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          className={`pl-10 bg-white border ${
+            formik.touched[name] && formik.errors[name]
+              ? "border-red-500"
+              : "border-gray-300"
+          } text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 w-full p-2.5 transition-all duration-200 ease-in-out hover:border-green-400`}
         />
-        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-          <FiCheck className="text-green-500" />
-        </div>
       </div>
-    </div>
+      {formik.touched[name] && formik.errors[name] && (
+        <motion.p 
+          initial={{ opacity: 0, y: -5 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          className="text-xs text-red-600 mt-1"
+        >
+          {formik.errors[name]}
+        </motion.p>
+      )}
+    </motion.div>
   );
 
+  if (isLoading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-white">
+        <motion.div 
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ repeat: Infinity, repeatType: "reverse", duration: 1 }}
+          className="w-12 h-12 rounded-full border-4 border-green-600 border-t-transparent"
+        />
+
+      </div>
+    );
+  }
+
   return (
-    <div className="font-[Inter] bg-gradient-to-br from-green-50 to-green-100 flex justify-center p-4 w-full">
-      <div className="bg-white rounded-3xl shadow-lg overflow-hidden w-full max-w-4xl">
-        {/* Header with gradient background */}
-        <div className="bg-gradient-to-r from-green-600 to-green-500 p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold font-Inter">Profile Settings</h2>
-              <p className="text-green-100">Manage your personal information</p>
-            </div>
-            <div className="bg-white/20 p-2 rounded-full">
-              <FiUser className="text-xl" />
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+      className="min-h-[calc(100vh-5rem)] bg-gray-50 py-3 px-4 sm:px-6 lg:px-8 w-full"
+    >
+      <div className="max-w-4xl mx-auto">
+        {/* Header Card */}
+        <motion.div 
+          initial={{ y: -30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 100, damping: 15 }}
+          className="bg-white rounded-xl shadow-md overflow-hidden mb-8 border border-gray-200 hover:shadow-lg transition-shadow duration-300"
+        >
+          <div className="bg-gradient-to-r from-green-700 to-green-600 px-6 py-8 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <motion.h1 
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-3xl font-bold"
+                >
+                  Profile Settings
+                </motion.h1>
+                <motion.p 
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-green-100 mt-2"
+                >
+                  Manage your personal information
+                </motion.p>
+              </div>
+              <motion.div 
+                whileHover={{ rotate: 15, scale: 1.1 }}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                className="bg-white/20 p-3 rounded-full backdrop-blur-sm"
+              >
+                <FiUser className="text-2xl" />
+              </motion.div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Profile form */}
-        <div className="p-6 md:p-8">
-          <form onSubmit={formik.handleSubmit} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {(["firstName", "lastName"] as EditableFields[]).map(renderEditableField)}
-            </div>
-
-            {renderEditableField("address")}
-
-            {(["email", "phoneNumber"] as ReadonlyFields[]).map(renderReadonlyField)}
-
-            {/* Password field with change button */}
-            <div className="relative w-full">
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-1"
+        {/* Form Card */}
+        <motion.div 
+          initial={{ y: 30, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 100, damping: 15, delay: 0.1 }}
+          className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow duration-300"
+        >
+          <form onSubmit={formik.handleSubmit} className="p-6 md:p-8">
+            {/* Personal Information Section */}
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="mb-10"
+            >
+              <motion.h3 
+                variants={itemVariants}
+                className="text-lg font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-200"
               >
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLock className="text-gray-500" />
-                </div>
-                <input
-                  type="password"
-                  id="password"
-                  autoComplete="current-password"
-                  className="pl-10 bg-gray-100 border border-gray-300 text-gray-500 text-sm rounded-lg block w-full p-2.5 cursor-not-allowed"
-                  placeholder="••••••••"
-                  disabled
-                  readOnly
-                />
-                <button
-                  type="button"
-                  onClick={() => router.push("/changepassword")}
-                  className="cursor-pointer absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center text-green-600 hover:text-green-800 transition-colors duration-200 text-sm font-medium"
-                >
-                  <FiEdit2 className="mr-1" /> Change
-                </button>
+                Personal Information
+              </motion.h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {nameFields.map((field) =>
+                  renderInput(field.name, field.label, field.icon)
+                )}
+                {renderGenderSelect()}
               </div>
-            </div>
+            </motion.div>
 
-            <div className="pt-4">
-              <button
+            {/* Address Section */}
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              transition={{ delay: 0.3 }}
+              className="mb-10"
+            >
+              <motion.h3 
+                variants={itemVariants}
+                className="text-lg font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-200"
+              >
+                Address Information
+              </motion.h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {addressFields.map((field) =>
+                  renderInput(field.name, field.label, field.icon)
+                )}
+              </div>
+            </motion.div>
+
+            {/* Submit Button */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="pt-4"
+            >
+              <motion.button
                 type="submit"
                 disabled={!formik.isValid || !formik.dirty}
-                className={`w-full py-3 px-6 rounded-xl text-lg font-semibold shadow-sm transition-all duration-300 flex items-center justify-center cursor-pointer ${
+                whileHover={formik.isValid && formik.dirty ? { scale: 1.02 } : {}}
+                whileTap={formik.isValid && formik.dirty ? { scale: 0.98 } : {}}
+                transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                className={`w-full py-3 px-6 rounded-lg text-lg font-semibold transition-all flex items-center justify-center ${
                   !formik.isValid || !formik.dirty
-                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-md"
+                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                    : "bg-gradient-to-r from-green-700 to-green-600 text-white hover:from-green-800 hover:to-green-700 shadow-md"
                 }`}
               >
-                <FiCheck className="mr-2 " />
+                <FiCheck className="mr-2" />
                 Save Changes
-              </button>
-            </div>
+              </motion.button>
+            </motion.div>
           </form>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

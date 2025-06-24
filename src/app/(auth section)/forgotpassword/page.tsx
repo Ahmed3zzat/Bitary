@@ -1,12 +1,11 @@
 "use client";
 import Image from "next/image";
 import * as Yup from "yup";
-import loginImage from "@/assets/images/doctorimg.jpg";
+import loginImage from "@/assets/images/SplashScreen.jpg";
 import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/hooks/store.hook";
 import { setSendPassword } from "@/store/Features/user.slice";
-
 
 export default function ForgetPassword() {
   const dispatch = useAppDispatch()
@@ -17,16 +16,19 @@ export default function ForgetPassword() {
       .required("Email is required"),
   });
 
+  const initialValues = {
+    email: "",
+  };
+
   const formik = useFormik({
-    initialValues: { email: "" },
+    initialValues,
     validationSchema,
     onSubmit: async(values) => {
       try {
         await dispatch(setSendPassword(values)).unwrap()
         router.push("/resetpassword");
-      } catch (error) {
-          localStorage.setItem("error", JSON.stringify(error))
-          
+      } catch {
+        // Handle error if needed
       }
     },
   });

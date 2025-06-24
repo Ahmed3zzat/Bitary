@@ -3,20 +3,21 @@ import { useFormik } from "formik";
 import Link from "next/link";
 import Image from "next/image";
 import * as Yup from "yup";
-import loginImage from "@/assets/images/doctorimg.jpg";
+import loginImage from "@/assets/images/SplashScreen.jpg";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import BitaryText from "@/assets/BitaryText.svg";
 // import { FcGoogle } from "react-icons/fc";
 // import { FaFacebookF } from "react-icons/fa";
 // import { BsTwitterX } from "react-icons/bs";
-import { useAppDispatch } from "@/hooks/store.hook";
-import { setSignup } from "@/store/Features/user.slice";
+import { useAppDispatch, useAppSelector } from "@/hooks/store.hook";
+import { checkEmailExist, setSignup } from "@/store/Features/user.slice";
 import { useRouter } from "next/navigation";
 
 export default function Signup() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const { emailExist, isCorrect } = useAppSelector((state) => state.userSlice);
   const [showPassword, setShowPassword] = useState(false);
   const [showRePassword, setShowRePassword] = useState(false);
 
@@ -44,6 +45,7 @@ export default function Signup() {
       .matches(/^\d{10,15}$/, "Phone number is not valid")
       .required("Phone number is required"),
     gender: Yup.number().required("Gender is required"),
+    userRole: Yup.number().required("Role pet owner or doctor is required"),
   });
 
   const formik = useFormik({
@@ -55,21 +57,22 @@ export default function Signup() {
       rePassword: "",
       userName: "",
       phoneNumber: "",
-      gender: 0,
+      gender: 1,
+      userRole: 1,
     },
     validationSchema,
     onSubmit: async (values) => {
       try {
         await dispatch(setSignup(values)).unwrap();
-        router.push("/home");
+        router.push("/login");
       } catch (error) {
-        console.error(error); // Log the error for debugging
+        console.error(error);
       }
     },
   });
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-r from-green-500 to-green-700">
+    <div className="min-h-[calc(100vh-5rem)] flex bg-gradient-to-r from-green-500 to-green-700">
       {/* Form Container */}
       <div className="lg:w-1/2 w-full flex flex-col items-center justify-center p-6 sm:p-12 bg-white overflow-y-auto">
         <div className="w-full max-w-md space-y-6">
@@ -138,8 +141,8 @@ export default function Signup() {
                   id="firstName"
                   name="firstName"
                   type="text"
-                  placeholder="ahmed"
-                  value={formik.values.firstName}
+                  placeholder="Enter your First Name"
+                  value={formik.values.firstName ?? ""}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
                   className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -162,8 +165,8 @@ export default function Signup() {
                   id="lastName"
                   name="lastName"
                   type="text"
-                  placeholder="Bitary"
-                  value={formik.values.lastName}
+                  placeholder="Enter your Last Name"
+                  value={formik.values.lastName ?? ""}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
                   className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -187,10 +190,12 @@ export default function Signup() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="bitary@example.com"
-                value={formik.values.email}
+                placeholder="Enter your Email Address"
+                value={formik.values.email ?? ""}
                 onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
+                onBlur={(e) => {
+                  dispatch(checkEmailExist(e.target.value));
+                }}
                 className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
               {formik.touched.email && formik.errors.email && (
@@ -198,6 +203,7 @@ export default function Signup() {
                   {formik.errors.email}
                 </p>
               )}
+              <p className="text-red-500 text-xs mt-1">{emailExist}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -212,8 +218,8 @@ export default function Signup() {
                   id="userName"
                   name="userName"
                   type="text"
-                  placeholder="ahmedbitary11"
-                  value={formik.values.userName}
+                  placeholder="Enter your Username"
+                  value={formik.values.userName ?? ""}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
                   className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -235,16 +241,14 @@ export default function Signup() {
                 <select
                   id="gender"
                   name="gender"
-                  value={formik.values.gender}
-                  onChange={(e) =>
-                    formik.setFieldValue("gender", parseInt(e.target.value))
-                  }
+                  value={formik.values.gender ?? 1}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    formik.setFieldValue("gender", isNaN(value) ? 1 : value);
+                  }}
                   onBlur={formik.handleBlur}
                   className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
-                  <option value={0} disabled>
-                    Select Gender
-                  </option>
                   <option value={1}>Male</option>
                   <option value={2}>Female</option>
                 </select>
@@ -267,8 +271,8 @@ export default function Signup() {
                 id="phoneNumber"
                 name="phoneNumber"
                 type="tel"
-                placeholder="011216740545"
-                value={formik.values.phoneNumber}
+                placeholder="Enter your Phone Number"
+                value={formik.values.phoneNumber ?? ""}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
                 className="w-full px-4 py-2 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -292,8 +296,8 @@ export default function Signup() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   name="password"
-                  placeholder="••••••••"
-                  value={formik.values.password}
+                  placeholder="Enter your password"
+                  value={formik.values.password ?? ""}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
                   className="w-full px-4 py-2 pr-10 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -330,8 +334,8 @@ export default function Signup() {
                   id="rePassword"
                   type={showRePassword ? "text" : "password"}
                   name="rePassword"
-                  placeholder="••••••••"
-                  value={formik.values.rePassword}
+                  placeholder="Enter your Password Again"
+                  value={formik.values.rePassword ?? ""}
                   onChange={formik.handleChange}
                   onBlur={formik.handleBlur}
                   className="w-full px-4 py-2 pr-10 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -358,13 +362,59 @@ export default function Signup() {
               )}
             </div>
 
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Register As
+              </label>
+              <div className="flex items-center space-x-6">
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="userRole"
+                    value={1}
+                    checked={(formik.values.userRole ?? 1) === 1}
+                    onChange={() => formik.setFieldValue("userRole", 1)}
+                    className="form-radio text-green-600"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Pet Owner</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="userRole"
+                    value={2}
+                    checked={formik.values.userRole === 2}
+                    onChange={() => formik.setFieldValue("userRole", 2)}
+                    className="form-radio text-green-600"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Doctor</span>
+                 </label>
+                {/*<label className="inline-flex items-center">
+                  <input
+                    type="radio"
+                    name="userRole"
+                    value={3}
+                    checked={formik.values.userRole === 3}
+                    onChange={() => formik.setFieldValue("userRole", 3)}
+                    className="form-radio text-green-600"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Admin</span>
+                </label> */}
+              </div>
+              {formik.touched.userRole && formik.errors.userRole && (
+                <p className="text-red-500 text-xs mt-1">
+                  {formik.errors.userRole}
+                </p>
+              )}
+            </div>
+
             <button
               type="submit"
-              disabled={!formik.isValid || !formik.dirty}
+              disabled={!formik.isValid || !formik.dirty || isCorrect == true}
               className={`w-full py-3 px-4 rounded-lg text-white font-medium text-lg shadow-sm transition-colors ${
-                !formik.isValid || !formik.dirty
+                !formik.isValid || !formik.dirty || isCorrect == true
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-green-600 hover:bg-green-700"
+                  : "bg-green-600 hover:bg-green-700 cursor-pointer"
               }`}
             >
               Create Account

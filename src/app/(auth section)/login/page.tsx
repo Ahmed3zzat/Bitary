@@ -3,13 +3,15 @@ import { useFormik } from "formik";
 import Link from "next/link";
 import Image from "next/image";
 import * as Yup from "yup";
-import loginImage from "@/assets/images/doctorimg.jpg";
+import loginImage from "@/assets/images/SplashScreen.jpg";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import BitaryText from "@/assets/BitaryText.svg";
 import { useAppDispatch } from "@/hooks/store.hook";
 import { setLogin } from "@/store/Features/user.slice";
+import { createCart, getCartById } from "@/store/Features/user.cart";
+import { store } from "@/store/store";
 
 export default function Login() {
   const dispatch = useAppDispatch();
@@ -17,6 +19,8 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
+
+   
   const validationSchema = Yup.object().shape({
     email: Yup.string()
       .email("Invalid email address")
@@ -30,22 +34,39 @@ export default function Login() {
       ),
   });
 
+
   const formik = useFormik({
     initialValues: { email: "", password: "" },
     validationSchema,
     onSubmit: async (values) => {
       try {
         await dispatch(setLogin(values)).unwrap();
-        router.push("/home");
+        localStorage.setItem("email", values.email);
+        const data = await dispatch(getCartById());
+
+        if (
+          data.payload == undefined &&
+          store.getState().userCartSlice.checkBasketExist == false
+        ) {
+          dispatch(createCart());
+        }
+        localStorage.setItem("email", values.email);
+        if(
+        localStorage.getItem("userRole")=="2"){
+          router.push("/shop");
+        }else{
+
+          router.push("/home");
+        }
+
       } catch (error) {
-        localStorage.setItem("error", JSON.stringify(error))
+        console.log(error);
       }
-      // router.push("/home");
     },
   });
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-r from-green-500 to-green-700">
+    <div className="min-h-[calc(100vh-5rem)] flex bg-gradient-to-r from-green-500 to-green-700">
       {/* Form Container */}
       <div className="lg:w-1/2 w-full flex flex-col items-center justify-center p-6 sm:p-12 bg-white overflow-y-auto">
         <div className="w-full max-w-md space-y-8">
@@ -63,40 +84,6 @@ export default function Login() {
             <p className="mt-2 text-gray-600">Sign in to your Bitary account</p>
           </div>
 
-          {/* Social Login Options */}
-          {/* <div className="space-y-4">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">
-                  Or continue with
-                </span>
-              </div>
-            </div>
-
-            <div className="flex justify-center gap-4">
-              <button 
-                className="p-3 rounded-full shadow-md border border-gray-300 hover:bg-gray-50 transition duration-300"
-                aria-label="Sign in with Google"
-              >
-                <FcGoogle className="w-5 h-5" />
-              </button>
-              <button 
-                className="p-3 rounded-full shadow-md border border-gray-300 hover:bg-gray-50 transition duration-300 text-blue-600"
-                aria-label="Sign in with Facebook"
-              >
-                <FaFacebookF className="w-5 h-5" />
-              </button>
-              <button 
-                className="p-3 rounded-full shadow-md border border-gray-300 hover:bg-gray-50 transition duration-300"
-                aria-label="Sign in with Twitter"
-              >
-                <BsTwitterX className="w-5 h-5" />
-              </button>
-            </div>
-          </div> */}
 
           {/* Login Form */}
           <form className="space-y-6" onSubmit={formik.handleSubmit}>
@@ -176,7 +163,7 @@ export default function Login() {
               className={`w-full py-3 px-4 rounded-lg text-white font-medium text-lg shadow-sm transition-colors ${
                 !formik.isValid || !formik.dirty
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-green-600 hover:bg-green-700"
+                  : "bg-green-600 hover:bg-green-700 cursor-pointer"
               }`}
             >
               Sign in
